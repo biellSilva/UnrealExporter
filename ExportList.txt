@@ -1,0 +1,1 @@
+Hotta/Content/Resources/CoreBlueprints/DataTable/Fashion/.*\.uasset

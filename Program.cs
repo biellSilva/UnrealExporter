@@ -13,10 +13,10 @@ DotEnv.Load(dotenv);
 var config = new ConfigurationBuilder().AddEnvironmentVariables().Build();
 
 var pathToPaks = config["PATH_TO_PAKS"] ?? "";
-var outputDir = config["OUTPUT_DIR"] ?? ""; // Creates a folder "Content" at the specified location
+var outputDir = config["OUTPUT_DIR"] ?? "./"; // Creates a folder "Content" at the specified location
 var aesKey = config["AES_KEY"] ?? "";
 
-var provider = new DefaultFileProvider(pathToPaks, SearchOption.TopDirectoryOnly, true, new VersionContainer(EGame.GAME_UE4_27));
+var provider = new DefaultFileProvider(pathToPaks, SearchOption.TopDirectoryOnly, true, new VersionContainer(EGame.GAME_TowerOfFantasy));
 provider.Initialize();
 provider.SubmitKey(new FGuid(), new FAesKey(aesKey));
 
@@ -26,7 +26,19 @@ provider.SubmitKey(new FGuid(), new FAesKey(aesKey));
 // Create a list of regexes based on ExportList.txt
 var targetFilePaths = new List<Regex>();
 foreach (var regex in File.ReadAllLines("ExportList.txt"))
-    targetFilePaths.Add(new Regex("^" + regex + "$", RegexOptions.IgnoreCase));
+{
+    var regex_ = new Regex("^" + regex + "$", RegexOptions.IgnoreCase);
+    targetFilePaths.Add(regex_);
+    Console.WriteLine("Regex added => " + regex_);
+}
+
+// Create a list of filenames with extension base on IgnoreList.txt
+var ignoreFilePaths = new List<string>();
+foreach (var filename in File.ReadAllLines("IgnoreList.txt"))
+{
+    ignoreFilePaths.Add(filename);
+    Console.WriteLine("File added to ignore => " + filename);
+}
 
 double start = now();
 var totalFiles = 0;
@@ -34,18 +46,23 @@ var totalFiles = 0;
 // Loop through all files and export the ones that match any of the regexes in ExportList.txt
 foreach (var file in provider.Files)
 {
-    if (targetFilePaths.Any(regex => regex.IsMatch(file.Value.Path)))
+    if (
+        targetFilePaths.Any(regex => regex.IsMatch(file.Value.Path)) &&
+        !ignoreFilePaths.Any(ignore => ignore == file.Value.Name) &&
+        !File.Exists(Path.Combine(root, file.Value.Path.Replace(".uasset", ".json")))
+        )
     {
-        var filePath = (Path.GetFullPath(outputDir) + Path.GetDirectoryName(file.Value.Path)).Replace("BLUEPROTOCOL", "");
+        var filePath = Path.GetFullPath(outputDir) + Path.GetDirectoryName(file.Value.Path);
         var fileName = Path.GetFileNameWithoutExtension(file.Value.Path) + ".json";
         Directory.CreateDirectory(filePath);
-        Console.WriteLine("=> " + filePath + Path.DirectorySeparatorChar + fileName);
 
         // Load all objects in the .uasset/.umap file, serialize to JSON, then write to file
         var allObjects = provider.LoadAllObjects(file.Value.Path);
         var json = JsonConvert.SerializeObject(allObjects, Formatting.Indented);
         File.WriteAllText(filePath + Path.DirectorySeparatorChar + fileName, json);
-        
+
+        Console.WriteLine("=> " + filePath + Path.DirectorySeparatorChar + fileName);
+
         totalFiles++;
     }
 }

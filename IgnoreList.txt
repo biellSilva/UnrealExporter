@@ -1,0 +1,8 @@
+DA_TamingMonster.uasset
+DamageFloatiesTemplatePathData.uasset
+ImitationElementEffectConfigDataTable.uasset
+PlayerAnimSequenceDataTable.uasset
+ImitationChatNodeDataTable.uasset
+ActivityDateTimeSpawnDataTable.uasset
+PetStandardConfigDataTable.uasset
+PersonalityTypeDataTable.uasset
